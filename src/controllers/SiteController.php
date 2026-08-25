@@ -21,6 +21,7 @@ use Yii;
 use hiam\authclient\AuthAction;
 use yii\base\Module;
 use yii\filters\AccessControl;
+use yii\filters\VerbFilter;
 
 /**
  * Site controller.
@@ -51,6 +52,17 @@ class SiteController extends \hisite\controllers\SiteController
                         'allow' => true,
                         'roles' => ['@'],
                     ],
+                ],
+            ],
+            // 'csrf-token' is documented as GET-only below (in actions()) but nothing
+            // enforced that - a POST here with a still-valid token would slip past
+            // Yii's own CSRF check and reach the action anyway, regenerating the
+            // token as an unintended side effect of a request that was never
+            // supposed to route here.
+            'verbs' => [
+                'class' => VerbFilter::class,
+                'actions' => [
+                    'csrf-token' => ['get'],
                 ],
             ],
         ]);

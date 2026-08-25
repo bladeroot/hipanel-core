@@ -28,26 +28,54 @@ class CsrfRetry extends Component
             /** @var View $view */
             $view = $event->sender->view;
             $csrfTokenUrl = Url::to('/site/csrf-token');
+            // Yii's own CSRF-check message (Controller::beforeAction(), 'yii' category) -
+            // translated per the app's language, so a plain-English match would silently
+            // stop matching once the site isn't in English (this app's default language
+            // is 'ru' - see config/web.php). Listing the shipped translations this app
+            // actually uses is more resilient than string-matching a single locale; an
+            // untranslated/new locale just falls back to today's broader (still POST +
+            // same-origin gated) behavior instead of breaking.
+            $csrfMessages = json_encode([
+                // Source string, from yii\web\Controller::beforeAction().
+                'Unable to verify your data submission.',
+                // vendor/yiisoft/yii2/messages/ru/yii.php
+                'Не удалось проверить переданные данные.',
+                // vendor/yiisoft/yii2/messages/uk/yii.php
+                'Не вдалося перевірити передані дані.',
+            ]);
             $js = /** @lang JavaScript */ "
               ;(() => {
                 var refreshing = false;
+                var queue = [];
+                var csrfMessages = $csrfMessages;
                 $(document).ajaxError(function (event, jqXHR, settings) {
                   if (
                     jqXHR.status !== 400 ||
                     settings._csrfRetried ||
-                    refreshing ||
                     !settings.type ||
                     settings.type.toUpperCase() !== 'POST' ||
-                    settings.url.indexOf('$csrfTokenUrl') !== -1
+                    settings.crossDomain ||
+                    settings.url.indexOf('$csrfTokenUrl') !== -1 ||
+                    !jqXHR.responseJSON ||
+                    csrfMessages.indexOf(jqXHR.responseJSON.message) === -1
                   ) {
+                    return;
+                  }
+                  queue.push(settings);
+                  if (refreshing) {
                     return;
                   }
                   refreshing = true;
                   $.get('$csrfTokenUrl', function (data) {
                     yii.setCsrfToken(data.csrfParam, data.csrfToken);
-                    refreshing = false;
-                    $.ajax($.extend({}, settings, { _csrfRetried: true }));
+                    var pending = queue;
+                    queue = [];
+                    pending.forEach(function (queuedSettings) {
+                      $.ajax($.extend({}, queuedSettings, { _csrfRetried: true }));
+                    });
                   }).fail(function () {
+                    queue = [];
+                  }).always(function () {
                     refreshing = false;
                   });
                 });
