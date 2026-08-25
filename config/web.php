@@ -25,7 +25,6 @@ return [
         'themeManager' => 'themeManager',
         'language' => 'language',
         'timezone',
-        'csrfRetry',
     ]),
     'aliases' => [
         '@ref' => '/ref',
@@ -33,7 +32,6 @@ return [
     ],
     'components' => [
         'timezone' => ['class' => hipanel\components\Timezone::class],
-        'csrfRetry' => ['class' => hipanel\components\CsrfRetry::class],
         'request' => [
             'enableCsrfCookie' => false,
             'cookieValidationKey' => $params['cookieValidationKey'],
