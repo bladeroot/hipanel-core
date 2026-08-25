@@ -10,6 +10,7 @@
 
 namespace hipanel\controllers;
 
+use hipanel\actions\CsrfTokenAction;
 use hipanel\actions\TimeZoneAction;
 use hipanel\helpers\UserHelper;
 use hipanel\logic\Impersonator;
@@ -97,6 +98,10 @@ class SiteController extends \hisite\controllers\SiteController
                 ],
             ],
             'timezone' => TimeZoneAction::class,
+            // GET, not POST - deliberately: it needs to be reachable even when the client's
+            // current CSRF token has gone stale/mismatched (that's the whole point of it),
+            // and GET requests aren't subject to Yii's CSRF check to begin with.
+            'csrf-token' => CsrfTokenAction::class,
         ]);
     }
 
